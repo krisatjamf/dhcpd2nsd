@@ -13,4 +13,4 @@ and Finally:  i'd recommend running it from a cronjob, you can do it as often as
 
 the script won't make any changes unless there is a change to make so run it as often as you want, just remember it does SIGHUP nsd each time it makes a change
 
-# */5     *       *       *       *       /path/to/dhcpd2nsd.pl
+ */5     *       *       *       *       /path/to/dhcpd2nsd.pl
