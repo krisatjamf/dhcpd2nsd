@@ -13,6 +13,8 @@ my %config;
 $config{'ttl_offset'} = 59;
 $config{'serial_inc'} = 1;
 $config{'nsd_pid_file'} = '/var/nsd/run/nsd.pid';
+$config{'skip_reservations'} = undef;
+$config{'dhcpd_conf'} = '/etc/dhcpd.conf';
 $config{'log_name'} = 'dhcpd2nsd';
 $config{'log_facility'} = 'LOG_DAEMON';
 $config{'log_priority'} = 'notice';
@@ -190,8 +192,6 @@ sub extract_leases() {
 			$lease = $1;
 		}
 		elsif ( $_ =~ /^\s*\}\s*$/ ) {
-			# validate
-
 			my $parser = DateTime::Format::Strptime->new(
   				pattern => '%Y/%m/%d %H:%M:%S %Z',
   				on_error => 'croak',
@@ -222,23 +222,24 @@ sub extract_leases() {
 		}
 	}
 
-	open( CONF, '/etc/dhcpd.conf' );
-	my @lines = <CONF>;
-	close CONF;
+	unless ($config{'skip_reservations'}) {
 
-	my $reservation;
+		open( CONF, $config{'dhcpd_conf'} );
+		my @lines = <CONF>;
+		close CONF;
+
+		my $reservation;
 	
-	foreach (@lines) {
-		my $line = $_;
+		foreach (@lines) {
+			my $line = $_;
 
-		if ($line =~ /^\s+host\s([\w-_]+)\s+.*$/) {
-			$reservation = $1;
-		}
-		elsif ($line =~ /^\s+fixed\-address\s+(.*);/) {
-			$host = $1;
-			$leases{$host}{'client-hostname'} = $reservation;
+			if ($line =~ /^\s+host\s([\w-_]+)\s+.*$/) {
+				$reservation = $1;
+			}
+			elsif ($line =~ /^\s+fixed\-address\s+(.*);/) {
+				$host = $1;
+				$leases{$host}{'client-hostname'} = $reservation;
+			}
 		}
 	}
-
-	#return \%leases;
 }

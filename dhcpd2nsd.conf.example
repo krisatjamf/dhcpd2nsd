@@ -6,9 +6,12 @@ zone_file = "/var/nsd/zones/master/unity_park.local"
 
 ### Defaulted values ###
 
-# ttl_offsets = -59;
+# ttl_offset = 59;
 # serial_inc = 1;
 # nsd_pid_file = '/var/nsd/run/nsd.pid';
+# skip_reservations = 0;
+# dhcpd_conf = '/etc/dhcpd.conf';
 # log_name = 'dhcpd2nsd';
 # log_facility = 'LOG_DAEMON';
 # log_priority = 'notice';
+
