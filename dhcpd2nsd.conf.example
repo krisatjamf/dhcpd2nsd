@@ -1,6 +1,6 @@
 
 #zone_file is the only *required* config value as it defines where dhcpd2nsd adds hosts
-zone_file = "/var/nsd/zones/master/unity_park.local"
+zone_file = "/var/nsd/zones/master/local_zone.local"
 
 
 
