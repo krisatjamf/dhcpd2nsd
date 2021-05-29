@@ -1,17 +1,18 @@
 
-# DHCPD2NSD
+# dhcpd2nsd.pl 
 
-the script uses a slightly modified TTL (59 seconds less than the zone by default) to mark hosts that it has populated
+dhcpd2nsd will process extract leases from dhcpd.leases, and DHCP reservations from dhcpd.conf and process them into the designated NSD zonefile
 
-note: the script will also delete any enteries with a matching TTL who's lease or reservation is no longer valid.
+the script uses a slightly modified TTL (59 seconds less than the zone by default) to mark hosts that it has populated and to determine which enteries it can remove
 
+there are various config options which will control the behavior of the script, however in general the script will only make changes to the zone file when dhcpd has added or removed a client
 
-and Finally:  i'd recommend running it from a cronjob, you can do it as often as you like, i use the following as a nice middle ground.
+below is the *suggested* cronjob for running the script, but as stated on a network with a low rate of change you can run it as frequently as you want, just be aware that it DOES
+send a SIGHUP to nsd when it does find a change to make
 
-the script won't make any changes unless there is a change to make so run it as often as you want, just remember it does SIGHUP nsd each time it makes a change
-
- */5     *       *       *       *       /path/to/dhcpd2nsd.pl
-
+```
+*/5     *       *       *       *       /path/to/dhcpd2nsd.pl
+```
 
 
 
