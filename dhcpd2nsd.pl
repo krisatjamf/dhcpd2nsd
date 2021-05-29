@@ -6,16 +6,57 @@ use Clone 'clone';
 use Data::Dumper;
 use Sys::Syslog;
 
-### Config Variables ###
+my %config;
 
-my $zone_file = "/var/nsd/zones/master/your.local.domain.local";
+### Config defaults ###
+
+$config{'ttl_offset'} = 59;
+$config{'serial_inc'} = 1;
+$config{'nsd_pid_file'} = '/var/nsd/run/nsd.pid';
+$config{'log_name'} = 'dhcpd2nsd';
+$config{'log_facility'} = 'LOG_DAEMON';
+$config{'log_priority'} = 'notice';
 
 ### Code ###
 
-openlog('dhcpd2nsd', undef, 'LOG_DAEMON');
-%leases = %{extract_leases()};
-my $zone = DNS::ZoneParse->new($zone_file);
+openlog($config{'log_name'}, undef, 'LOG_DAEMON');
+parse_config();
+extract_leases();
+
+my $zone = DNS::ZoneParse->new($config{'zone_file'});
 compare_zone_leases();
+
+
+### Subs from here on in ###
+
+
+sub parse_config() {
+
+	my @rawconf;
+
+	if (-e "/etc/dhcpd2nsd.conf") {
+		open(CONF, "/etc/dhcpd2nsd.conf");
+		@rawconf = <CONF>;
+		close CONF;
+	}
+
+	if (-e "./dhcpd2nsd.conf") {
+		open(CONF, "./dhcpd2nsd.conf");
+		while ($line = <CONF>) {
+			push(@rawconf, $line);
+		}
+	}
+
+	foreach (@rawconf) {
+		my $line = $_;
+		$line =~ s/\#.*$//g;
+		$line =~ s/["']*//g;
+
+		if ($line =~ /^\s*([\w_-\d]+)\s+\=\s+([^\s]+)\s*$/) {
+			$config{$1} = $2;
+		}
+	}
+}
 
 sub compare_zone_leases() {
 
@@ -26,8 +67,17 @@ sub compare_zone_leases() {
 
 	my %soa = %{$zone->soa};
 	my $domain = '';
+	my $marker_ttl;
 
-	my $marker_ttl = $soa{'ttl'} - 59;
+	if ($config{'absolute_ttl'}) {
+		$marker_ttl = $config{'absolute_ttl'};
+	}
+	elsif ($config{'ttl_offset'}) {
+		$marker_ttl = $soa{'ttl'} - $config{'ttl_offset'};
+	}
+	else {
+		$marker_ttl = $soa{'ttl'} - 59;
+	}
 
 	if ($soa{'origin'} =~ /\.$/) {
 		$domain = $soa{'origin'};
@@ -44,11 +94,9 @@ sub compare_zone_leases() {
 
 			if ( $leases{$lease}{'client-hostname'} eq $record{'name'} ) {
 				if ( $lease == $record{'host'} ) {
-					#matched hostname and IP to lease
 					$leases{$lease}{'matched'} = 1;
 				}
 				else {
-					# matched hostname but not IP
 					$record{'host'} = $lease;
 					$zone_updated++;
 				}
@@ -79,7 +127,7 @@ sub compare_zone_leases() {
 	}
 
 	if ($zone_updated or $zone_deleted) { 
-		$zone->new_serial(1);
+		$zone->new_serial($config{'serial_inc'});
 		$zone_string = $zone->output();
 		my @lines = split(/\n/, $zone_string);
 		my @new_lines;
@@ -111,17 +159,18 @@ sub compare_zone_leases() {
 			}
 		}
 		$new_string = join("\n", @new_lines);
-		open (ZONE, ">$zone_file");
+		open (ZONE, ">$config{'zone_file'}");
 		print ZONE "$new_string\n";
 		close ZONE;
 
 		open (PID, "/var/nsd/run/nsd.pid");
+		open (PID, $config{'nsd_pid_file'});
 		my $pid = <PID>;
 		close PID;
 
 		kill 'HUP', $pid;
 
-		syslog('notice', "Updated NSD: added $zone_updated and deleted $zone_deleted records"); 
+		syslog($config{'log_priority'}, "Updated NSD: added $zone_updated and deleted $zone_deleted records"); 
 	}
 }
 
@@ -131,7 +180,7 @@ sub extract_leases() {
 	my @lines = <LEASE>;
 	close LEASE;
 
-	my %leases;
+	# my %leases;
 	my $lease; 
 	my %tmp;
 
@@ -191,5 +240,5 @@ sub extract_leases() {
 		}
 	}
 
-	return \%leases;
+	#return \%leases;
 }

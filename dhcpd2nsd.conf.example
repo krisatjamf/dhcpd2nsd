@@ -1,0 +1,14 @@
+
+#zone_file is the only *required* config value as it defines where dhcpd2nsd adds hosts
+zone_file = "/var/nsd/zones/master/unity_park.local"
+
+
+
+### Defaulted values ###
+
+# ttl_offsets = -59;
+# serial_inc = 1;
+# nsd_pid_file = '/var/nsd/run/nsd.pid';
+# log_name = 'dhcpd2nsd';
+# log_facility = 'LOG_DAEMON';
+# log_priority = 'notice';
