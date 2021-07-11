@@ -229,16 +229,23 @@ sub extract_leases() {
 		close CONF;
 
 		my $reservation;
+		my $skip = 0;
 	
 		foreach (@lines) {
 			my $line = $_;
 
 			if ($line =~ /^\s+host\s([\w-_]+)\s+.*$/) {
 				$reservation = $1;
+				$skip = 0;
+			}
+			elsif ($line =~ /^.*\#skipdns.*$/ig) {
+				$skip++;
 			}
 			elsif ($line =~ /^\s+fixed\-address\s+(.*);/) {
-				$host = $1;
-				$leases{$host}{'client-hostname'} = $reservation;
+				unless ($skip) {
+					$host = $1;
+					$leases{$host}{'client-hostname'} = $reservation;
+				}
 			}
 		}
 	}
